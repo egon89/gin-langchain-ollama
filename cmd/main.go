@@ -10,22 +10,33 @@ import (
 	"sync"
 	"time"
 
-	"github.com/egon89/gin-langchain-ollama/processor"
-	"github.com/egon89/gin-langchain-ollama/watcher"
+	"github.com/egon89/gin-langchain-ollama/internal/config"
+	"github.com/egon89/gin-langchain-ollama/internal/processor"
+	"github.com/egon89/gin-langchain-ollama/internal/watcher"
 	"github.com/gin-gonic/gin"
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/memory"
 )
 
 // instance of ollama LLM
-var llm = ollamaFactory()
+var llm = config.OllamaFactory()
 
 var chatMemories = make(map[string]*memory.ConversationBuffer)
 var mu sync.Mutex
 
 func main() {
+	config.LoadEnv()
+
 	router := gin.Default()
+
+	// dbConnection, err := config.NewDB(config.DbUrl)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// queries := db.New(dbConnection)
+
+	// processedFileService := service.NewProcessedFileService(queries)
 
 	router.Static("/public", "./public")
 
@@ -129,12 +140,12 @@ func main() {
 	fileQueue := make(chan string, 100)
 
 	// Start watcher
-	err := watcher.StartFolderWatcher("../../resources", fileQueue)
+	err := watcher.StartFolderWatcher(config.RagPath, fileQueue)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to start folder watcher: %v", err)
 	}
 
-	processor.StartTikaProcessor(fileQueue, "http://localhost:9998", 3)
+	go processor.StartTikaProcessor(fileQueue, config.TikaHost, 3)
 
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
@@ -162,19 +173,6 @@ func isDisconnected(ctx context.Context) bool {
 	default:
 		return false
 	}
-}
-
-func ollamaFactory() *ollama.LLM {
-	// Default configuration (localhost:11434)
-	llm, err := ollama.New(ollama.WithModel("llama3.2"))
-	if err != nil {
-		log.Println("Ollama config error")
-		panic(err)
-	}
-
-	log.Println("Ollama LLM initialized with model")
-
-	return llm
 }
 
 func getChatMemory(chatId string) *memory.ConversationBuffer {
