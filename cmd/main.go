@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/egon89/gin-langchain-ollama/processor"
+	"github.com/egon89/gin-langchain-ollama/watcher"
 	"github.com/gin-gonic/gin"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/ollama"
@@ -123,6 +125,16 @@ func main() {
 			}
 		}
 	})
+
+	fileQueue := make(chan string, 100)
+
+	// Start watcher
+	err := watcher.StartFolderWatcher("../../resources", fileQueue)
+	if err != nil {
+		panic(err)
+	}
+
+	processor.StartTikaProcessor(fileQueue, "http://localhost:9998", 3)
 
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
