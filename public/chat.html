@@ -28,16 +28,20 @@
     }
     .response-box {
     white-space: pre-wrap;
-    background-color: #f8f9fa;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
     padding: 1rem;
     border-radius: 0.5rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--bs-border-color);
     margin-bottom: 1rem;
     }
   </style>
 </head>
-<body class="container py-5">
-<h2 class="mb-4">Ollama Streaming</h2>
+<body class="container py-5" data-bs-theme="dark">
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">Ollama Streaming</h2>
+  <button id="theme-toggle" class="btn btn-link">Light Mode</button>
+</div>
 <ul class="nav nav-tabs" id="chatTabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="chat1-chat" data-bs-toggle="tab" data-bs-target="#chat1" type="button" role="tab" aria-controls="chat1" aria-selected="true">Chat 1</button>
@@ -86,6 +90,23 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // Theme toggle logic
+  const themeToggleBtn = document.getElementById('theme-toggle');
+  themeToggleBtn.addEventListener('click', function() {
+    const body = document.body;
+    const currentTheme = body.getAttribute('data-bs-theme');
+    if (currentTheme === 'dark') {
+      body.setAttribute('data-bs-theme', 'light');
+      themeToggleBtn.textContent = 'Dark Mode';
+      themeToggleBtn.classList.remove('btn-outline-dark');
+      themeToggleBtn.classList.add('btn-light');
+    } else {
+      body.setAttribute('data-bs-theme', 'dark');
+      themeToggleBtn.textContent = 'Light Mode';
+      themeToggleBtn.classList.remove('btn-light');
+      themeToggleBtn.classList.add('btn-outline-dark');
+    }
+  });
   // Store eventSource for each chat
   const eventSources = {
     chat1: null,
