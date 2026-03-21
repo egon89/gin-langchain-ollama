@@ -41,7 +41,9 @@ func main() {
 
 	processedFileService := service.NewProcessedFileService(queries)
 
-	tikaProcessor := processor.NewTikaProcessor(config.TikaHost, processedFileService)
+	ingestionService := service.NewIngestionService(llm, dbConnection)
+
+	tikaProcessor := processor.NewTikaProcessor(config.TikaHost, processedFileService, ingestionService)
 
 	startupScanRunner := runner.NewStartupFolderScanRunner()
 

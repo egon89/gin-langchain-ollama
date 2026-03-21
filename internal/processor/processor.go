@@ -18,12 +18,18 @@ import (
 type TikaProcessor struct {
 	tikaURL              string
 	processedFileService *service.ProcessedFileService
+	ingestionService     *service.IngestionService
 }
 
-func NewTikaProcessor(tikaURL string, processedFileService *service.ProcessedFileService) *TikaProcessor {
+func NewTikaProcessor(
+	tikaURL string,
+	processedFileService *service.ProcessedFileService,
+	ingestionService *service.IngestionService,
+) *TikaProcessor {
 	return &TikaProcessor{
 		tikaURL:              tikaURL,
 		processedFileService: processedFileService,
+		ingestionService:     ingestionService,
 	}
 }
 
@@ -92,9 +98,16 @@ func (tp *TikaProcessor) processFile(ctx context.Context, filePath, tikaURL stri
 	content := buf.String()
 	log.Printf("Extracted content for file %s: %s\n", filePath, content)
 
-	id, err := util.NewUUID(uuid.New().String())
+	uuid := uuid.New()
+	id, err := util.NewUUID(uuid.String())
 	if err != nil {
 		log.Println("Error generating UUID:", err)
+		return
+	}
+
+	err = tp.ingestionService.IngestContent(ctx, uuid, filePath, content)
+	if err != nil {
+		log.Println("Error ingesting content:", err)
 		return
 	}
 
