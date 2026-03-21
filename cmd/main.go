@@ -11,7 +11,10 @@ import (
 	"time"
 
 	"github.com/egon89/gin-langchain-ollama/internal/config"
+	"github.com/egon89/gin-langchain-ollama/internal/db"
 	"github.com/egon89/gin-langchain-ollama/internal/processor"
+	"github.com/egon89/gin-langchain-ollama/internal/runner"
+	"github.com/egon89/gin-langchain-ollama/internal/service"
 	"github.com/egon89/gin-langchain-ollama/internal/watcher"
 	"github.com/gin-gonic/gin"
 	"github.com/tmc/langchaingo/llms"
@@ -29,14 +32,18 @@ func main() {
 
 	router := gin.Default()
 
-	// dbConnection, err := config.NewDB(config.DbUrl)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	dbConnection, err := config.NewDB(config.DbUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// queries := db.New(dbConnection)
+	queries := db.New(dbConnection)
 
-	// processedFileService := service.NewProcessedFileService(queries)
+	processedFileService := service.NewProcessedFileService(queries)
+
+	tikaProcessor := processor.NewTikaProcessor(config.TikaHost, processedFileService)
+
+	startupScanRunner := runner.NewStartupFolderScanRunner()
 
 	router.Static("/public", "./public")
 
@@ -139,13 +146,15 @@ func main() {
 
 	fileQueue := make(chan string, 100)
 
+	go startupScanRunner.Run(config.RagPath, fileQueue)
+
 	// Start watcher
-	err := watcher.StartFolderWatcher(config.RagPath, fileQueue)
+	err = watcher.StartFolderWatcher(config.RagPath, fileQueue)
 	if err != nil {
 		log.Fatalf("Failed to start folder watcher: %v", err)
 	}
 
-	go processor.StartTikaProcessor(fileQueue, config.TikaHost, 3)
+	go tikaProcessor.Start(fileQueue, 3)
 
 	router.Run() // listens on 0.0.0.0:8080 by default
 }
