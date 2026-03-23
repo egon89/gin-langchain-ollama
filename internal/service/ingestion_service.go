@@ -4,13 +4,12 @@ import (
 	"context"
 	"log"
 
+	"github.com/egon89/gin-langchain-ollama/internal/factory"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/tmc/langchaingo/embeddings"
 	"github.com/tmc/langchaingo/llms/ollama"
 	"github.com/tmc/langchaingo/schema"
 	"github.com/tmc/langchaingo/textsplitter"
-	"github.com/tmc/langchaingo/vectorstores/pgvector"
 )
 
 type IngestionService struct {
@@ -25,36 +24,9 @@ func NewIngestionService(llm *ollama.LLM, dbConnection *pgxpool.Pool) *Ingestion
 func (s *IngestionService) IngestContent(ctx context.Context, id uuid.UUID, filePath, content string) error {
 	chunks := s.split(content)
 
-	/*
-		documentEmbeddings, err := s.llm.CreateEmbedding(ctx, chunks)
-		if err != nil {
-			log.Println("Error creating embeddings:", err)
-			return err
-		}
+	embedder := factory.CreateEmbedderOrFail(s.llm)
 
-		// print the embeddings for demonstration purposes
-		for i, embedding := range documentEmbeddings {
-			log.Printf("Chunk %d: %v\n", i, embedding)
-		}
-	*/
-
-	embedder, err := embeddings.NewEmbedder(s.llm)
-	if err != nil {
-		log.Println("Error creating embedder:", err)
-		return err
-	}
-
-	store, err := pgvector.New(
-		ctx,
-		pgvector.WithConn(s.dbConnection),
-		pgvector.WithCollectionTableName("collection_table"),
-		pgvector.WithEmbedder(embedder),
-		pgvector.WithEmbeddingTableName("emb_table"),
-	)
-	if err != nil {
-		log.Println("Error creating vector store:", err)
-		return err
-	}
+	store := factory.CreateStoreOrFail(ctx, s.dbConnection, embedder)
 
 	docs := make([]schema.Document, len(chunks))
 
@@ -75,7 +47,7 @@ func (s *IngestionService) IngestContent(ctx context.Context, id uuid.UUID, file
 
 func (s *IngestionService) split(content string) []string {
 	splitter := textsplitter.NewRecursiveCharacter(
-		textsplitter.WithChunkSize(500),
+		textsplitter.WithChunkSize(1000),
 		textsplitter.WithChunkOverlap(50),
 	)
 

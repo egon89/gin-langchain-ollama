@@ -1,4 +1,4 @@
-CREATE TABLE processed_files (
+CREATE TABLE IF NOT EXISTS processed_files (
     id UUID PRIMARY KEY,
     file_name VARCHAR(500) NOT NULL,
     checksum VARCHAR(64) NOT NULL UNIQUE,

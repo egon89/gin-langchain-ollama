@@ -43,6 +43,8 @@ func main() {
 
 	ingestionService := service.NewIngestionService(llm, dbConnection)
 
+	retrieverService := service.NewRetrieverService(llm, dbConnection)
+
 	tikaProcessor := processor.NewTikaProcessor(config.TikaHost, processedFileService, ingestionService)
 
 	startupScanRunner := runner.NewStartupFolderScanRunner()
@@ -74,8 +76,9 @@ func main() {
 		// Get conversation history
 		chatMemory := getChatMemory(chatId)
 		chatMessages, _ := chatMemory.ChatHistory.Messages(ctx)
+		systemContext := retrieverService.RetrieveAnswer(ctx, message)
 
-		messageContentList := createMessageContentList(chatMessages, message)
+		messageContentList := createMessageContentList(systemContext, chatMessages, message)
 
 		log.Printf("Received message for chat %s: %s", chatId, message)
 
@@ -211,8 +214,17 @@ func getResponse(response *llms.ContentResponse, c *gin.Context) string {
 	return choices[0].Content
 }
 
-func createMessageContentList(chatMessages []llms.ChatMessage, lastMessage string) []llms.MessageContent {
+func createMessageContentList(
+	systemContext string,
+	chatMessages []llms.ChatMessage,
+	lastMessage string,
+) []llms.MessageContent {
 	var messageContentList []llms.MessageContent
+
+	messageContentList = append(messageContentList, llms.MessageContent{
+		Role:  llms.ChatMessageTypeSystem,
+		Parts: []llms.ContentPart{llms.TextContent{Text: systemContext}},
+	})
 
 	for _, msg := range chatMessages {
 		switch msg.GetType() {
