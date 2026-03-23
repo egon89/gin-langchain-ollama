@@ -96,7 +96,6 @@ func (tp *TikaProcessor) processFile(ctx context.Context, filePath, tikaURL stri
 	buf.ReadFrom(resp.Body)
 
 	content := buf.String()
-	log.Printf("Extracted content for file %s: %s\n", filePath, content)
 
 	uuid := uuid.New()
 	id, err := util.NewUUID(uuid.String())

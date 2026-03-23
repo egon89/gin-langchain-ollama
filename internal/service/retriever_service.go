@@ -26,16 +26,16 @@ func (s *RetrieverService) RetrieveDocuments(ctx context.Context, query string) 
 
 	retriever := vectorstores.ToRetriever(store, 5)
 
-	result, err := retriever.GetRelevantDocuments(ctx, query)
+	results, err := retriever.GetRelevantDocuments(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, r := range result {
+	for _, r := range results {
 		log.Printf("Retrieved document: %s", r.Metadata)
 	}
 
-	return result, nil
+	return results, nil
 }
 
 func (s *RetrieverService) RetrieveAnswer(ctx context.Context, query string) string {
@@ -54,6 +54,5 @@ func (s *RetrieverService) RetrieveAnswer(ctx context.Context, query string) str
 		sb.WriteString(doc.PageContent)
 		sb.WriteString("\n---\n")
 	}
-
 	return sb.String()
 }
